@@ -47,20 +47,34 @@ function record.struct_mt:_resolve(recursive)
 end
 
 function record.struct_mt:_element(instance, symbol)
+   local c = rawget(self, "_cache")
+   if not c then c = setmetatable({}, {__mode = "kv"}) rawset(self, "_cache", c) end
+   if not instance then
+      local cs = rawget(c, symbol)
+      if cs then
+         return unpack(cs)
+      end
+   end
+   
    -- First of all, try normal inherited functionality.
    local element, category = component.mt._element(self, instance, symbol)
-   if element then return element, category end
+   if not element then
 
-   -- Special handling of '_native' attribute.
-   if symbol == '_native' then return symbol, '_internal'
-   elseif symbol == '_type' then return symbol, '_internal'
-   end
+      -- Special handling of '_native' attribute.
+      if symbol == '_native' or symbol == '_type' then
+         return symbol, '_internal'
+      end
 
-   -- If the record has parent struct, try it there.
-   local parent = rawget(self, '_parent')
-   if parent then
-      return parent:_element(instance, symbol)
+      -- If the record has parent struct, try it there.
+      local parent = rawget(self, '_parent')
+      if parent then
+         element, category = parent:_element(instance, symbol)
+      end
    end
+   if not instance then
+      rawset(c, symbol, { element, category })
+   end
+   return element, category
 end
 
 -- Add accessor for handling fields.
