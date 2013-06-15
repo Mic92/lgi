@@ -235,6 +235,9 @@ end
 
 -- __index implementation, uses _element method to perform lookup.
 function component.mt:__index(key)
+   local c = rawget(self, "cache")
+   if not c then c = setmetatable({}, {__mode = "kv"}) rawset(self, "cache", c) end
+   if c[key] then return c[key] end
    -- First try to invoke our own _element method.
    local _element, mt = rawget(self, '_element')
    if not _element then
@@ -254,11 +257,14 @@ function component.mt:__index(key)
 	 end
 	 if index then value = index(self, value) end
       end
+      rawset(c, key, value)
       return value
    end
 
    -- If not found as object element, examine the metatable itself.
-   return rawget(mt or getmetatable(self), key)
+   local value = rawget(mt or getmetatable(self), key)
+   rawset(c, key, value)
+   return value
 end
 
 -- Implementation of attribute accessor.  Attribute is either function
